@@ -31,22 +31,7 @@ interface DatabaseSchema {
 const DB_FILE = path.join(process.cwd(), 'data', 'store.json');
 
 const INITIAL_DATA: DatabaseSchema = {
-  users: [
-    {
-      id: 'usr_vivek_01',
-      name: 'Vivek singh',
-      firstName: 'Vivek',
-      lastName: 'singh',
-      email: 'viveksikarwar121204@gmail.com',
-      headline: 'Manager, Software Development',
-      biography: 'Software engineering leader passionate about enterprise Java, Spring ecosystem, reactive architectures, and cloud-native AI platforms.',
-      language: 'English (US)',
-      website: 'https://github.com/viveksikarwar',
-      role: 'LEARNER',
-      avatarInitials: 'VS',
-      occupation: 'Manager, Software Development'
-    }
-  ],
+  users: [],
   activeUserId: null, // Start logged out by default for general public experience!
   streak: {
     currentStreakWeeks: 0,
@@ -864,6 +849,25 @@ class Database {
   public logout(): void {
     this.data.activeUserId = null;
     this.persist(this.data);
+  }
+
+  public async clearAllUsers(): Promise<{ success: boolean; message: string; supabaseResult?: any }> {
+    this.data.users = [];
+    this.data.activeUserId = null;
+    this.data.enrolledCourseIds = [];
+    this.data.lectureProgress = {};
+    this.persist(this.data);
+
+    let supabaseResult = null;
+    if (isSupabaseConnected()) {
+      supabaseResult = await supabaseDb.clearAllUsers();
+    }
+
+    return {
+      success: true,
+      message: 'All users successfully emptied from local store and Supabase',
+      supabaseResult
+    };
   }
 
   public updateUser(updates: Partial<User>): User {

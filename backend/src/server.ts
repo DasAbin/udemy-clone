@@ -37,6 +37,24 @@ app.post('/api/supabase/sync', async (req, res) => {
   }
 });
 
+app.post('/api/supabase/clear-users', async (req, res) => {
+  try {
+    const result = await db.clearAllUsers();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/auth/clear-users', async (req, res) => {
+  try {
+    const result = await db.clearAllUsers();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 1. Auth & User Profile
 app.get('/api/auth/me', (req, res) => {
   const user = db.getUser();

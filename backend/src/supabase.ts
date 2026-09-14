@@ -242,7 +242,36 @@ export const supabaseDb = {
     return data;
   },
 
-  // 6. Push full initial store data to Supabase
+  // 6. Clear/Empty all users from Supabase
+  async clearAllUsers() {
+    if (!supabaseInstance) {
+      return { success: false, message: 'Supabase is not configured yet. Set SUPABASE_URL and SUPABASE_KEY in .env' };
+    }
+    try {
+      console.log('[Supabase] Clearing all users and related profile data from Supabase...');
+      // Clean up dependent child tables first if any
+      await supabaseInstance.from('user_lecture_progress').delete().neq('id', '___none___');
+      await supabaseInstance.from('user_enrollments').delete().neq('id', '___none___');
+      
+      // Delete all profiles
+      const { error, count } = await supabaseInstance
+        .from('profiles')
+        .delete({ count: 'exact' })
+        .neq('id', '___none___');
+
+      if (error) {
+        console.warn('[Supabase] Error deleting profiles:', error.message);
+        return { success: false, error: error.message };
+      }
+      console.log('[Supabase] Successfully emptied users. Deleted profiles count:', count);
+      return { success: true, message: 'All users cleared from Supabase', count };
+    } catch (err: any) {
+      console.error('[Supabase] Error clearing users:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  // 7. Push full initial store data to Supabase
   async syncLocalStoreToSupabase(store: any) {
     if (!supabaseInstance) {
       return { success: false, message: 'Supabase is not configured yet. Set SUPABASE_URL and SUPABASE_KEY in .env' };
