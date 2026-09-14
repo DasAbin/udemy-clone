@@ -55,6 +55,11 @@ app.post('/api/auth/clear-users', async (req, res) => {
   }
 });
 
+app.post('/api/db/reload', (req, res) => {
+  const data = db.reload();
+  res.json({ success: true, message: 'Database reloaded from disk', ordersCount: data.orders.length });
+});
+
 // 1. Auth & User Profile
 app.get('/api/auth/me', (req, res) => {
   const user = db.getUser();

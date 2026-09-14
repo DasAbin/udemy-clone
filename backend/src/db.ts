@@ -718,6 +718,11 @@ class Database {
     });
   }
 
+  public reload(): DatabaseSchema {
+    this.data = this.load();
+    return this.data;
+  }
+
   public getUser(): User | null {
     if (!this.data.activeUserId) return null;
     return this.data.users.find(u => u.id === this.data.activeUserId) || null;
@@ -914,34 +919,59 @@ class Database {
   }
 
   public getMyLearning(targetUserId?: string): { enrolledCourses: EnrolledCourse[]; streak: DatabaseSchema['streak'] } {
-    const userId = targetUserId || this.data.activeUserId || 'usr_vivek_01';
-    const userEnrollments = this.data.enrolledCourseIds.filter(e => e.userId === userId);
+    const activeUser = this.getUser();
+    const userId = targetUserId || (activeUser ? activeUser.id : (this.data.activeUserId || (this.data.users[0] ? this.data.users[0].id : 'usr_default')));
+    
+    // 1. Get user enrollments
+    let userEnrollments = this.data.enrolledCourseIds.filter(e => e.userId === userId);
+
+    // 2. Also ensure any courses from the user's purchase orders are in enrollments
+    const userOrders = this.data.orders.filter(o => 
+      (activeUser && o.customerEmail && o.customerEmail.toLowerCase() === activeUser.email.toLowerCase()) || 
+      (!activeUser && !targetUserId) ||
+      o.customerName === (activeUser ? activeUser.name : '') ||
+      userId === this.data.activeUserId
+    );
+
+    userOrders.forEach(o => {
+      if (!userEnrollments.some(e => e.courseId === o.courseId)) {
+        const orderDate = new Date(o.date);
+        const enrolledAt = !isNaN(orderDate.getTime()) ? orderDate.toISOString() : '2025-01-01T00:00:00Z';
+        const enrollment = {
+          userId,
+          courseId: o.courseId,
+          enrolledAt,
+          completedAt: new Date().toISOString(),
+          userRating: 5
+        };
+        userEnrollments.push(enrollment);
+        this.data.enrolledCourseIds.push(enrollment);
+      }
+    });
 
     const enrolledCourses: EnrolledCourse[] = userEnrollments.map(e => {
-      const course = this.data.courses.find(c => c.id === e.courseId) || this.data.courses[0];
+      const course = this.data.courses.find(c => c.id === e.courseId || c.slug === e.courseId) || this.data.courses[0];
       let totalLectures = 0;
-      let completedLectures = 0;
 
       course.sections?.forEach(sec => {
-        sec.lectures.forEach(lec => {
+        sec.lectures.forEach(() => {
           totalLectures++;
-          const isCompleted = !!this.data.lectureProgress[`${userId}_${course.id}_${lec.id}`];
-          if (isCompleted) completedLectures++;
         });
       });
 
-      const progressPercent = e.completedAt 
-        ? 100 
-        : (totalLectures > 0 ? Math.round((completedLectures / totalLectures) * 100) : 100);
+      if (totalLectures === 0) {
+        totalLectures = course.totalHours ? Math.round(course.totalHours * 9) : 50;
+      }
 
+      // Mark 100% complete with 5 star rating per user request
       return {
         course,
         enrolledAt: e.enrolledAt,
-        completedAt: e.completedAt || (progressPercent === 100 ? '2026-03-02T16:45:00Z' : undefined),
-        progressPercent,
+        completedAt: e.completedAt || '2026-03-02T16:45:00Z',
+        progressPercent: 100,
         userRating: e.userRating || 5,
-        completedLecturesCount: totalLectures > 0 ? totalLectures : 10,
-        totalLecturesCount: totalLectures > 0 ? totalLectures : 10
+        completedLecturesCount: totalLectures,
+        totalLecturesCount: totalLectures
       };
     });
 
@@ -1085,7 +1115,7 @@ class Database {
     return true;
   }
 
-  public checkout(paymentMethod: string = '₹469.00 UPI'): Order {
+  public checkout(paymentMethod?: string): Order {
     const { items, total } = this.getCart();
     if (items.length === 0) {
       throw new Error('Cart is empty');
@@ -1100,6 +1130,7 @@ class Database {
     const invoiceNumber = `IN${new Date().getFullYear()}-0${new Date().getMonth() + 1}-${Math.floor(1000000 + Math.random() * 9000000)}`;
     const tax = Math.round(total * 0.18 * 100) / 100;
     const subtotal = Math.round((total - tax) * 100) / 100;
+    const resolvedPaymentMethod = paymentMethod || `₹${total.toFixed(2)} UPI`;
 
     const newOrder: Order = {
       id: `ord_${Date.now()}`,
@@ -1108,7 +1139,7 @@ class Database {
       courseId: firstItem.courseId,
       courseTitle: items.map(i => i.course.title).join(', '),
       totalPrice: total,
-      paymentType: paymentMethod,
+      paymentType: resolvedPaymentMethod,
       status: 'COMPLETED',
       invoiceNumber,
       transactionRef: `UPI/${Math.floor(100000000000 + Math.random() * 900000000000)}/${customerEmail.split('@')[0]}@okaxis`,
@@ -1124,13 +1155,16 @@ class Database {
 
     this.data.orders.unshift(newOrder);
 
-    // Enroll in courses
+    // Enroll in courses with 100% complete
     items.forEach(i => {
-      if (!this.data.enrolledCourseIds.some(e => e.userId === userId && e.courseId === i.courseId)) {
+      const existing = this.data.enrolledCourseIds.find(e => e.userId === userId && e.courseId === i.courseId);
+      if (!existing) {
         this.data.enrolledCourseIds.push({
           userId,
           courseId: i.courseId,
-          enrolledAt: new Date().toISOString()
+          enrolledAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          userRating: 5
         });
       }
     });

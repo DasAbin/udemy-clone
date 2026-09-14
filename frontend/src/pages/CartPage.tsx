@@ -12,7 +12,7 @@ interface CartPageProps {
 }
 
 export const CartPage: React.FC<CartPageProps> = ({ cartItems, cartTotal, onRemoveFromCart, onClearCart }) => {
-  const [paymentMethod, setPaymentMethod] = useState('₹469.00 UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card'>('upi');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -21,7 +21,10 @@ export const CartPage: React.FC<CartPageProps> = ({ cartItems, cartTotal, onRemo
   const handleCheckout = async () => {
     setIsProcessing(true);
     try {
-      await api.checkout(paymentMethod);
+      const finalPayment = paymentMethod === 'card'
+        ? 'Credit / Debit Card'
+        : `₹${cartTotal.toFixed(2)} UPI`;
+      await api.checkout(finalPayment);
       setIsProcessing(false);
       setIsSuccess(true);
       onClearCart();
@@ -128,27 +131,27 @@ export const CartPage: React.FC<CartPageProps> = ({ cartItems, cartTotal, onRemo
             <p className="checkout-modal-sub">Select your preferred payment method:</p>
 
             <div className="payment-options-list">
-              <label className={`payment-option ${paymentMethod.includes('UPI') ? 'selected' : ''}`}>
+              <label className={`payment-option ${paymentMethod === 'upi' ? 'selected' : ''}`}>
                 <input
                   type="radio"
                   name="payment"
-                  value="₹469.00 UPI"
-                  checked={paymentMethod.includes('UPI')}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  value="upi"
+                  checked={paymentMethod === 'upi'}
+                  onChange={() => setPaymentMethod('upi')}
                 />
                 <div className="option-label-info">
-                  <strong>UPI (Google Pay, PhonePe, Paytm)</strong>
+                  <strong>UPI (Google Pay, PhonePe, Paytm) - ₹{cartTotal.toFixed(2)}</strong>
                   <span>Instant verification via UPI ID / QR</span>
                 </div>
               </label>
 
-              <label className={`payment-option ${paymentMethod.includes('Card') ? 'selected' : ''}`}>
+              <label className={`payment-option ${paymentMethod === 'card' ? 'selected' : ''}`}>
                 <input
                   type="radio"
                   name="payment"
-                  value="Credit / Debit Card"
-                  checked={paymentMethod.includes('Card')}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  value="card"
+                  checked={paymentMethod === 'card'}
+                  onChange={() => setPaymentMethod('card')}
                 />
                 <div className="option-label-info">
                   <strong>Credit / Debit Card</strong>
