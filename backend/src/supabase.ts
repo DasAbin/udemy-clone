@@ -1,31 +1,76 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
-// Environment variables for Supabase configuration
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '';
+// Automatically load .env from backend/.env or root .env
+function loadEnv() {
+  const possiblePaths = [
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), 'backend', '.env'),
+    path.join(path.dirname(process.cwd()), '.env'),
+    path.join(path.dirname(process.cwd()), 'backend', '.env')
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const content = fs.readFileSync(p, 'utf-8');
+        content.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+            const idx = trimmed.indexOf('=');
+            const key = trimmed.slice(0, idx).trim();
+            const val = trimmed.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
+            if (key && !process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        });
+      } catch (err) {
+        // ignore
+      }
+    }
+  }
+}
+loadEnv();
 
 let supabaseInstance: SupabaseClient | null = null;
 
-if (supabaseUrl && supabaseKey) {
-  try {
-    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
-    });
-    console.log('[Supabase] Client initialized successfully with URL:', supabaseUrl);
-  } catch (err) {
-    console.warn('[Supabase] Initialization error, falling back to local store:', err);
+export function initSupabase(): SupabaseClient | null {
+  loadEnv();
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '';
+
+  if (supabaseUrl && supabaseKey && supabaseUrl !== 'https://your-project-id.supabase.co') {
+    try {
+      supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      });
+      console.log('[Supabase] Client connected successfully to:', supabaseUrl);
+      return supabaseInstance;
+    } catch (err) {
+      console.warn('[Supabase] Client initialization error:', err);
+      supabaseInstance = null;
+    }
+  } else {
     supabaseInstance = null;
   }
-} else {
-  console.log('[Supabase] No SUPABASE_URL / SUPABASE_KEY set in environment. Running in local JSON DB fallback mode.');
+  return supabaseInstance;
 }
 
-export const getSupabase = (): SupabaseClient | null => supabaseInstance;
+initSupabase();
 
-export const isSupabaseConnected = (): boolean => supabaseInstance !== null;
+export const getSupabase = (): SupabaseClient | null => {
+  if (!supabaseInstance) {
+    initSupabase();
+  }
+  return supabaseInstance;
+};
+
+export const isSupabaseConnected = (): boolean => getSupabase() !== null;
 
 // Database helper functions keyed by user ID
 export const supabaseDb = {
@@ -39,6 +84,19 @@ export const supabaseDb = {
       .single();
     if (error) {
       console.warn('[Supabase] Error fetching profile for', userId, error.message);
+      return null;
+    }
+    return data;
+  },
+
+  async getProfileByEmail(email: string) {
+    if (!supabaseInstance) return null;
+    const { data, error } = await supabaseInstance
+      .from('profiles')
+      .select('*')
+      .eq('email', email)
+      .single();
+    if (error) {
       return null;
     }
     return data;

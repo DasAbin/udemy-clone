@@ -13,9 +13,9 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ user, onUserUp
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'profile';
 
-  const [firstName, setFirstName] = useState(user?.firstName || 'Vivek');
-  const [lastName, setLastName] = useState(user?.lastName || 'singh');
-  const [headline, setHeadline] = useState(user?.headline || 'Manager, Software Development');
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [headline, setHeadline] = useState(user?.headline || '');
   const [biography, setBiography] = useState(user?.biography || '');
   const [language, setLanguage] = useState(user?.language || 'English (US)');
   const [website, setWebsite] = useState(user?.website || '');
@@ -53,7 +53,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ user, onUserUp
   };
 
   const navItems = [
-    { key: 'view-public', label: 'View public profile', link: '/user/vivek-singh' },
+    { key: 'view-public', label: 'View public profile', link: user?.name ? `/user/${encodeURIComponent(user.name.toLowerCase().replace(/\s+/g, '-'))}` : '/user/profile' },
     { key: 'profile', label: 'Profile' },
     { key: 'photo', label: 'Photo' },
     { key: 'security', label: 'Account Security' },
@@ -75,9 +75,9 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ user, onUserUp
         <aside className="profile-sidebar">
           <div className="profile-sidebar-user">
             <div className="profile-avatar-circle">
-              {user?.avatarInitials || 'VS'}
+              {user?.avatarInitials || (user?.name ? user.name[0].toUpperCase() : 'U')}
             </div>
-            <h3 className="profile-user-name">{user?.name || 'Vivek singh'}</h3>
+            <h3 className="profile-user-name">{user?.name || 'My Profile'}</h3>
           </div>
 
           <nav className="profile-nav-list">

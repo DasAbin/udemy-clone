@@ -10,31 +10,45 @@ export const CertificatePage: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Attempt fetch from backend
-    api.getCertificate(certificateId).then(res => {
-      if (res && res.certificate) {
-        setCert(res.certificate);
+    // Attempt fetch from backend and active user
+    const loadData = async () => {
+      let currentUser: any = null;
+      try {
+        const u = await api.getUser();
+        currentUser = u.user;
+      } catch (e) {
+        // ignore
       }
-    }).catch(() => {
-      // Fallback default matching Screenshot 2026-09-14 114257.png
-      setCert({
-        certificateNumber: 'UC-48d475b3-3dd7-443d-bfef-ab611f8f1937',
-        studentName: 'Vivek singh',
-        courseTitle: 'Java Spring Framework, Spring Boot, Spring AI - Gen AI',
-        instructorName: 'Navin Reddy, Telusko Edutech',
-        totalHours: 55,
-        totalLectures: 500,
-        issuedDate: 'March 26, 2026',
-        verificationUrl: 'ude.my/UC-48d475b3-3dd7-443d-bfef-ab611f8f1937',
-        referenceNumber: '0004',
-        pdfUrl: '/certificates/UC-48d475b3-3dd7-443d-bfef-ab611f8f1937.pdf'
-      });
-    });
+
+      try {
+        const res = await api.getCertificate(certificateId);
+        if (res && res.certificate) {
+          setCert({
+            ...res.certificate,
+            studentName: currentUser?.name || res.certificate.studentName || 'Student Name'
+          });
+        }
+      } catch (err) {
+        setCert({
+          certificateNumber: 'UC-48d475b3-3dd7-443d-bfef-ab611f8f1937',
+          studentName: currentUser?.name || 'Student Name',
+          courseTitle: 'Java Spring Framework, Spring Boot, Spring AI - Gen AI',
+          instructorName: 'Navin Reddy, Telusko Edutech',
+          totalHours: 55,
+          totalLectures: 500,
+          issuedDate: 'March 26, 2026',
+          verificationUrl: 'ude.my/UC-48d475b3-3dd7-443d-bfef-ab611f8f1937',
+          referenceNumber: '0004',
+          pdfUrl: '/certificates/UC-48d475b3-3dd7-443d-bfef-ab611f8f1937.pdf'
+        });
+      }
+    };
+    loadData();
   }, [certificateId]);
 
   const certificateData: CertificateData = cert || {
     certificateNumber: 'UC-48d475b3-3dd7-443d-bfef-ab611f8f1937',
-    studentName: 'Vivek singh',
+    studentName: 'Student Name',
     courseTitle: 'Java Spring Framework, Spring Boot, Spring AI - Gen AI',
     instructorName: 'Navin Reddy, Telusko Edutech',
     totalHours: 55,

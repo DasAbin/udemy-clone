@@ -8,11 +8,11 @@ export const api = {
     return res.json();
   },
 
-  async login(email?: string): Promise<{ user: User; message: string }> {
+  async login(email?: string, name?: string): Promise<{ user: User; message: string }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, name })
     });
     return res.json();
   },

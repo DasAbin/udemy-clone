@@ -32,11 +32,11 @@ export const AccountDropdown: React.FC<AccountDropdownProps> = ({ user, onClose,
       {/* Header Profile Info */}
       <Link to="/user/edit-profile" className="account-dropdown-header" onClick={onClose}>
         <div className="account-dropdown-avatar">
-          {user?.avatarInitials || 'VS'}
+          {user?.avatarInitials || (user?.name ? user.name[0].toUpperCase() : 'U')}
         </div>
         <div className="account-dropdown-info">
-          <div className="account-user-name">{user?.name || 'Vivek singh'}</div>
-          <div className="account-user-email">{user?.email || 'viveksikarwar121204@gmail.com'}</div>
+          <div className="account-user-name">{user?.name || 'Student'}</div>
+          <div className="account-user-email">{user?.email || 'student@example.com'}</div>
         </div>
       </Link>
 
@@ -85,7 +85,13 @@ export const AccountDropdown: React.FC<AccountDropdownProps> = ({ user, onClose,
 
       {/* Section 5 */}
       <div className="dropdown-section">
-        <Link to="/user/vivek-singh" onClick={onClose} className="dropdown-item">Public profile</Link>
+        <Link 
+          to={user?.name ? `/user/${encodeURIComponent(user.name.toLowerCase().replace(/\s+/g, '-'))}` : '/user/profile'} 
+          onClick={onClose} 
+          className="dropdown-item"
+        >
+          Public profile
+        </Link>
         <Link to="/user/edit-profile" onClick={onClose} className="dropdown-item">Edit profile</Link>
       </div>
 

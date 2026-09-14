@@ -738,42 +738,108 @@ class Database {
     return this.data.users.find(u => u.id === this.data.activeUserId) || null;
   }
 
-  public login(email?: string): User {
-    // If specific email or demo, find or fallback to Vivek
-    let user = this.data.users.find(u => u.email.toLowerCase() === (email || '').toLowerCase());
-    if (!user) {
-      user = this.data.users[0]; // Vivek singh
+  public async login(email?: string, name?: string): Promise<User> {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    
+    // 1. Check if user with this email exists in store
+    let user = this.data.users.find(u => u.email.toLowerCase() === cleanEmail);
+
+    // 2. If not found and Supabase is connected, check Supabase
+    if (!user && isSupabaseConnected() && cleanEmail) {
+      const sp = await supabaseDb.getProfileByEmail(cleanEmail);
+      if (sp) {
+        user = {
+          id: sp.id,
+          name: sp.name,
+          firstName: sp.first_name || sp.name.split(' ')[0],
+          lastName: sp.last_name || sp.name.split(' ').slice(1).join(' '),
+          email: sp.email,
+          headline: sp.headline || 'Student at Udemy',
+          biography: sp.biography || '',
+          language: sp.language || 'English (US)',
+          website: sp.website || '',
+          role: sp.role || 'LEARNER',
+          avatarInitials: sp.avatar_initials || (sp.name[0] || 'U').toUpperCase(),
+          occupation: sp.occupation || 'Learner'
+        };
+        this.data.users.push(user);
+      }
     }
+
+    // 3. If still not found, dynamically create user for whatever credentials the user entered
+    if (!user) {
+      const displayName = name && name.trim() ? name.trim() : (cleanEmail ? cleanEmail.split('@')[0] : 'Student');
+      const parts = displayName.split(' ');
+      const firstName = parts[0] || 'Student';
+      const lastName = parts.slice(1).join(' ') || '';
+      const initials = (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase();
+
+      user = {
+        id: `usr_${Date.now()}`,
+        name: displayName,
+        firstName,
+        lastName,
+        email: cleanEmail || `student_${Date.now()}@example.com`,
+        headline: 'Learner at Udemy',
+        biography: '',
+        language: 'English (US)',
+        website: '',
+        role: 'LEARNER',
+        avatarInitials: initials,
+        occupation: 'Learner'
+      };
+      this.data.users.push(user);
+
+      if (isSupabaseConnected()) {
+        supabaseDb.upsertProfile(user).catch(err => console.warn('[Supabase Sync Error]', err));
+      }
+    }
+
     this.data.activeUserId = user.id;
     this.persist(this.data);
     return user;
   }
 
-  public signup(name: string, email: string): User {
-    const names = name.trim().split(' ');
-    const firstName = names[0] || 'User';
+  public async signup(name: string, email: string): Promise<User> {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const names = cleanName.split(' ');
+    const firstName = names[0] || 'Student';
     const lastName = names.slice(1).join(' ') || '';
     const initials = (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase();
 
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      name,
-      firstName,
-      lastName,
-      email,
-      headline: 'Learner at Udemy',
-      biography: '',
-      language: 'English (US)',
-      website: '',
-      role: 'LEARNER',
-      avatarInitials: initials,
-      occupation: 'Learner'
-    };
+    let user = this.data.users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (user) {
+      user.name = cleanName;
+      user.firstName = firstName;
+      user.lastName = lastName;
+      user.avatarInitials = initials;
+    } else {
+      user = {
+        id: `usr_${Date.now()}`,
+        name: cleanName,
+        firstName,
+        lastName,
+        email: cleanEmail,
+        headline: 'Learner at Udemy',
+        biography: '',
+        language: 'English (US)',
+        website: '',
+        role: 'LEARNER',
+        avatarInitials: initials,
+        occupation: 'Learner'
+      };
+      this.data.users.push(user);
+    }
 
-    this.data.users.push(newUser);
-    this.data.activeUserId = newUser.id;
+    this.data.activeUserId = user.id;
     this.persist(this.data);
-    return newUser;
+
+    if (isSupabaseConnected()) {
+      supabaseDb.upsertProfile(user).catch(err => console.warn('[Supabase Sync Error]', err));
+    }
+
+    return user;
   }
 
   public logout(): void {
@@ -863,18 +929,34 @@ class Database {
   }
 
   public getPublicProfile(username?: string): { user: User; enrolledCourses: EnrolledCourse[] } {
-    let targetUser = this.data.users[0]; // Default Vivek singh
+    let targetUser: User | null = null;
     if (username) {
       const lower = username.toLowerCase();
-      const match = this.data.users.find(u => 
+      targetUser = this.data.users.find(u => 
         u.id.toLowerCase() === lower || 
         u.name.toLowerCase().replace(/\s+/g, '-') === lower ||
         u.firstName.toLowerCase() === lower ||
-        lower.includes('vivek')
-      );
-      if (match) targetUser = match;
+        u.email.toLowerCase() === lower ||
+        (lower.includes('vivek') && u.name.toLowerCase().includes('vivek'))
+      ) || null;
     }
-    const myLearning = this.getMyLearning(targetUser.id);
+    if (!targetUser) {
+      targetUser = this.getUser() || this.data.users[0] || {
+        id: 'usr_guest',
+        name: 'Student',
+        firstName: 'Student',
+        lastName: '',
+        email: 'student@example.com',
+        headline: 'Learner',
+        biography: '',
+        language: 'English (US)',
+        website: '',
+        role: 'LEARNER',
+        avatarInitials: 'ST',
+        occupation: 'Learner'
+      };
+    }
+    const myLearning = this.getMyLearning(targetUser ? targetUser.id : undefined);
     return {
       user: targetUser,
       enrolledCourses: myLearning.enrolledCourses
@@ -986,10 +1068,13 @@ class Database {
       throw new Error('Cart is empty');
     }
 
-    const userId = this.data.activeUserId || 'usr_vivek_01';
+    const activeUser = this.getUser();
+    const userId = activeUser ? activeUser.id : (this.data.activeUserId || 'usr_guest');
+    const customerName = activeUser ? activeUser.name : 'Student';
+    const customerEmail = activeUser ? activeUser.email : 'student@example.com';
     const firstItem = items[0];
-    const orderNumber = `ORD-${Date.now().toString().slice(-8)}`;
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+    const orderNumber = `AD-${Date.now().toString().slice(-10)}`;
+    const invoiceNumber = `IN${new Date().getFullYear()}-0${new Date().getMonth() + 1}-${Math.floor(1000000 + Math.random() * 9000000)}`;
     const tax = Math.round(total * 0.18 * 100) / 100;
     const subtotal = Math.round((total - tax) * 100) / 100;
 
@@ -1003,9 +1088,15 @@ class Database {
       paymentType: paymentMethod,
       status: 'COMPLETED',
       invoiceNumber,
-      transactionRef: `UPI/${Math.floor(100000000000 + Math.random() * 900000000000)}/user@okaxis`,
+      transactionRef: `UPI/${Math.floor(100000000000 + Math.random() * 900000000000)}/${customerEmail.split('@')[0]}@okaxis`,
       subtotal,
-      tax
+      tax,
+      couponCode: 'MT260223G1B',
+      customerName,
+      customerEmail,
+      supplierName: 'Udemy India LLP',
+      supplierAddress: '10th Floor, ResCowork 07, Tower B, Unitech Cyber Park, Sector 39, Gurgaon, Haryana, India, 122003',
+      supplierWebsite: 'udemy.com'
     };
 
     this.data.orders.unshift(newOrder);
@@ -1045,18 +1136,20 @@ class Database {
     if (stored) return stored;
 
     const user = this.getUser() || this.data.users[0];
+    const studentName = user ? user.name : 'Student';
+    const userId = user ? user.id : 'usr_student';
     return {
-      id: `UC-${course.id.toUpperCase()}-${user.id.toUpperCase()}`,
-      userId: user.id,
+      id: `UC-${course.id.toUpperCase()}-${userId.toUpperCase()}`,
+      userId: userId,
       courseId: course.id,
-      certificateNumber: `UC-${course.id.toUpperCase()}-${user.id.toUpperCase()}`,
-      studentName: user.name,
+      certificateNumber: `UC-${course.id.toUpperCase()}-${userId.toUpperCase()}`,
+      studentName: studentName,
       courseTitle: course.title,
       instructorName: course.instructorName,
       totalHours: course.totalHours,
       totalLectures: 500,
-      issuedDate: 'March 26, 2026',
-      certificateUrl: `ude.my/UC-${course.id.toUpperCase()}-${user.id.toUpperCase()}`,
+      issuedDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      certificateUrl: `ude.my/UC-${course.id.toUpperCase()}-${userId.toUpperCase()}`,
       referenceNumber: '0004',
       pdfUrl: '/certificates/UC-48d475b3-3dd7-443d-bfef-ab611f8f1937.pdf'
     };

@@ -22,7 +22,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user: acti
       try {
         setLoading(true);
         // Load public profile from backend
-        const targetSlug = username || 'usr_vivek_01';
+        const targetSlug = username || (activeUser ? activeUser.id : undefined);
         const data = await api.getPublicProfile(targetSlug);
         if (isMounted && data.user) {
           setProfileUser(data.user);
@@ -40,20 +40,20 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user: acti
 
     loadProfile();
     return () => { isMounted = false; };
-  }, [username, courses]);
+  }, [username, courses, activeUser]);
 
   const displayUser = profileUser || activeUser || {
-    id: 'usr_vivek_01',
-    name: 'Vivek singh',
-    firstName: 'Vivek',
-    lastName: 'singh',
-    email: 'viveksikarwar121204@gmail.com',
+    id: 'usr_student',
+    name: 'Student',
+    firstName: 'Student',
+    lastName: '',
+    email: 'student@example.com',
     role: 'LEARNER',
-    avatarInitials: 'VS',
-    headline: 'Manager, Software Development'
+    avatarInitials: 'ST',
+    headline: 'Lifelong Learner'
   };
 
-  const initialLetter = displayUser.name ? displayUser.name.trim()[0].toUpperCase() : 'V';
+  const initialLetter = displayUser.name ? displayUser.name.trim()[0].toUpperCase() : 'S';
 
   return (
     <div className="public-profile-page">
@@ -61,7 +61,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user: acti
       <section className="public-profile-banner">
         <div className="page-container">
           <div className="banner-role-label">{displayUser.role || 'LEARNER'}</div>
-          <h1 className="banner-name">{displayUser.name || 'Vivek singh'}</h1>
+          <h1 className="banner-name">{displayUser.name || 'Student'}</h1>
         </div>
       </section>
 

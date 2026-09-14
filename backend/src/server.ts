@@ -43,18 +43,18 @@ app.get('/api/auth/me', (req, res) => {
   res.json({ success: true, user });
 });
 
-app.post('/api/auth/login', (req, res) => {
-  const { email } = req.body;
-  const user = db.login(email);
+app.post('/api/auth/login', async (req, res) => {
+  const { email, name } = req.body;
+  const user = await db.login(email, name);
   res.json({ success: true, user, message: 'Logged in successfully' });
 });
 
-app.post('/api/auth/signup', (req, res) => {
+app.post('/api/auth/signup', async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email) {
     return res.status(400).json({ success: false, message: 'Name and email are required' });
   }
-  const user = db.signup(name, email);
+  const user = await db.signup(name, email);
   res.json({ success: true, user, message: 'Account created successfully' });
 });
 

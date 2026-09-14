@@ -68,8 +68,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
 
             <div className="party-col recipient">
               <h3 className="party-heading">Recipient details:</h3>
-              <p className="party-bold">Vivek Pratap singh</p>
-              <p className="party-line">viveksikarwar121204@gmail.com</p>
+              <p className="party-bold">{order.customerName || 'Student Name'}</p>
+              <p className="party-line">{order.customerEmail || 'student@example.com'}</p>
               <p className="party-line">Uttar Pradesh, 09, UP, India</p>
             </div>
           </div>

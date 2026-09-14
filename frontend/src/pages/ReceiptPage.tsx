@@ -11,15 +11,25 @@ export const ReceiptPage: React.FC = () => {
   useEffect(() => {
     const fetchReceipt = async () => {
       try {
+        let currentUser: any = null;
+        try {
+          const userRes = await api.getUser();
+          currentUser = userRes.user;
+        } catch (e) {
+          // ignore
+        }
+
         const res = await api.getReceiptByOrderNumber(orderId);
         if (res && res.receipt) {
-          setReceiptData(res.receipt);
+          setReceiptData({
+            ...res.receipt,
+            customerName: currentUser?.name || res.receipt.customerName || 'Customer'
+          });
         } else {
-          // Fallback default matching Screenshot 2026-09-14 114058.png
           setReceiptData({
             orderNumber: 'AD-666D4B735A484B686B71694659673D3D',
             date: 'Feb. 27, 2026',
-            customerName: 'Vivek singh',
+            customerName: currentUser?.name || 'Customer',
             courseTitle: 'Java Spring Framework, Spring Boot, Spring AI - Gen AI',
             couponCode: 'MT260223G1B',
             subtotal: 397.46,
@@ -31,11 +41,10 @@ export const ReceiptPage: React.FC = () => {
           });
         }
       } catch (err) {
-        // Fallback default matching Screenshot 2026-09-14 114058.png
         setReceiptData({
           orderNumber: 'AD-666D4B735A484B686B71694659673D3D',
           date: 'Feb. 27, 2026',
-          customerName: 'Vivek singh',
+          customerName: 'Customer',
           courseTitle: 'Java Spring Framework, Spring Boot, Spring AI - Gen AI',
           couponCode: 'MT260223G1B',
           subtotal: 397.46,

@@ -17,20 +17,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    setErrorMsg('');
-    try {
-      const res = await api.login('viveksikarwar121204@gmail.com');
-      onSuccess(res.user);
-      onClose();
-    } catch (err: any) {
-      setErrorMsg('Failed to log in as demo user.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -38,18 +24,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
 
     try {
       if (mode === 'login') {
-        const res = await api.login(email || 'viveksikarwar121204@gmail.com');
-        onSuccess(res.user);
-        onClose();
-      } else {
-        if (!name.trim() || !email.trim()) {
-          setErrorMsg('Please provide your name and email address.');
+        if (!email.trim()) {
+          setErrorMsg('Please enter your email address.');
           setIsLoading(false);
           return;
         }
-        const res = await api.signup(name, email);
-        onSuccess(res.user);
-        onClose();
+        const res = await api.login(email.trim(), name.trim());
+        if (res.user) {
+          onSuccess(res.user);
+          onClose();
+        } else {
+          setErrorMsg(res.message || 'Login failed.');
+        }
+      } else {
+        if (!name.trim() || !email.trim()) {
+          setErrorMsg('Please provide your full name and email address.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.signup(name.trim(), email.trim());
+        if (res.user) {
+          onSuccess(res.user);
+          onClose();
+        } else {
+          setErrorMsg(res.message || 'Signup failed.');
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication error.');
@@ -64,36 +63,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
         {/* Header */}
         <div className="auth-header">
           <h2 className="auth-title">
-            {mode === 'login' ? 'Log in to continue your learning journey' : 'Sign up and start learning'}
+            {mode === 'login' ? 'Log in to your account' : 'Sign up and start learning'}
           </h2>
           <button className="auth-close-btn" onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
 
-        {/* Demo Login Shortcut Callout */}
-        <div className="demo-account-callout">
-          <div className="demo-callout-text">
-            <div className="callout-badge">
-              <Sparkles size={14} className="mr-1" /> Quick Demo
-            </div>
-            <p className="callout-desc">
-              Log in instantly as <strong>Vivek singh</strong> (with enrolled Java Spring course, 100% progress, and purchase records).
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : '1-Click Demo Login'}
-          </button>
-        </div>
-
-        <div className="auth-divider-text">
-          <span>or continue with your credentials</span>
-        </div>
+        <p style={{ margin: '0 24px 16px', color: '#6a6f73', fontSize: '13px' }}>
+          Enter your name and email to personalize your learning dashboard, invoice, and certificates.
+        </p>
 
         {errorMsg && <div className="auth-error-alert">{errorMsg}</div>}
 

@@ -80,6 +80,11 @@ export interface Order {
   subtotal: number;
   tax: number;
   couponCode?: string;
+  customerName?: string;
+  customerEmail?: string;
+  supplierName?: string;
+  supplierAddress?: string;
+  supplierWebsite?: string;
 }
 
 export interface CartItem {

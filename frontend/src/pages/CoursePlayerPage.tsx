@@ -23,7 +23,7 @@ export const CoursePlayerPage: React.FC = () => {
   const [showCertificateDropdown, setShowCertificateDropdown] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [aiChat, setAiChat] = useState<{ role: string; text: string }[]>([
-    { role: 'assistant', text: 'Hello Vivek! I am your AI learning tutor for Spring Boot & Microservices. What questions do you have about this lecture?' }
+    { role: 'assistant', text: 'Hello! I am your AI learning tutor. What questions do you have about this lecture?' }
   ]);
 
   const videoRef = useRef<HTMLVideoElement>(null);

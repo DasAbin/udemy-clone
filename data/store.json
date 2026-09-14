@@ -13,9 +13,37 @@
       "role": "LEARNER",
       "avatarInitials": "VS",
       "occupation": "Manager, Software Development"
+    },
+    {
+      "id": "usr_1789416332713",
+      "name": "Abin Das",
+      "firstName": "Abin",
+      "lastName": "Das",
+      "email": "abin@example.com",
+      "headline": "Learner at Udemy",
+      "biography": "",
+      "language": "English (US)",
+      "website": "",
+      "role": "LEARNER",
+      "avatarInitials": "AD",
+      "occupation": "Learner"
+    },
+    {
+      "id": "usr_1789416332815",
+      "name": "Sarah Connor",
+      "firstName": "Sarah",
+      "lastName": "Connor",
+      "email": "sarah@skynet.com",
+      "headline": "Learner at Udemy",
+      "biography": "",
+      "language": "English (US)",
+      "website": "",
+      "role": "LEARNER",
+      "avatarInitials": "SC",
+      "occupation": "Learner"
     }
   ],
-  "activeUserId": null,
+  "activeUserId": "usr_1789416332815",
   "streak": {
     "currentStreakWeeks": 0,
     "courseMinutesWatched": 0,
