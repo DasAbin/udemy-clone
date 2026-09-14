@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     role TEXT DEFAULT 'LEARNER',
     avatar_initials TEXT DEFAULT 'VS',
     occupation TEXT,
+    password TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -738,14 +738,17 @@ class Database {
     return this.data.users.find(u => u.id === this.data.activeUserId) || null;
   }
 
-  public async login(email?: string, name?: string): Promise<User> {
+  public async login(email?: string, password?: string): Promise<User> {
     const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      throw new Error('Email address is required to log in.');
+    }
     
     // 1. Check if user with this email exists in store
     let user = this.data.users.find(u => u.email.toLowerCase() === cleanEmail);
 
     // 2. If not found and Supabase is connected, check Supabase
-    if (!user && isSupabaseConnected() && cleanEmail) {
+    if (!user && isSupabaseConnected()) {
       const sp = await supabaseDb.getProfileByEmail(cleanEmail);
       if (sp) {
         user = {
@@ -760,39 +763,26 @@ class Database {
           website: sp.website || '',
           role: sp.role || 'LEARNER',
           avatarInitials: sp.avatar_initials || (sp.name[0] || 'U').toUpperCase(),
-          occupation: sp.occupation || 'Learner'
+          occupation: sp.occupation || 'Learner',
+          password: sp.password || undefined
         };
         this.data.users.push(user);
       }
     }
 
-    // 3. If still not found, dynamically create user for whatever credentials the user entered
+    // 3. User MUST exist prior to login. If not found, reject with clear error!
     if (!user) {
-      const displayName = name && name.trim() ? name.trim() : (cleanEmail ? cleanEmail.split('@')[0] : 'Student');
-      const parts = displayName.split(' ');
-      const firstName = parts[0] || 'Student';
-      const lastName = parts.slice(1).join(' ') || '';
-      const initials = (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase();
+      throw new Error(`No account found with email "${cleanEmail}". Please sign up first.`);
+    }
 
-      user = {
-        id: `usr_${Date.now()}`,
-        name: displayName,
-        firstName,
-        lastName,
-        email: cleanEmail || `student_${Date.now()}@example.com`,
-        headline: 'Learner at Udemy',
-        biography: '',
-        language: 'English (US)',
-        website: '',
-        role: 'LEARNER',
-        avatarInitials: initials,
-        occupation: 'Learner'
-      };
-      this.data.users.push(user);
-
-      if (isSupabaseConnected()) {
-        supabaseDb.upsertProfile(user).catch(err => console.warn('[Supabase Sync Error]', err));
+    // 4. Verify password
+    if (user.password) {
+      if (!password || password !== user.password) {
+        throw new Error('Incorrect password. Please try again.');
       }
+    } else if (password) {
+      // Legacy user who registered before passwords were required; set password now
+      user.password = password;
     }
 
     this.data.activeUserId = user.id;
@@ -800,46 +790,75 @@ class Database {
     return user;
   }
 
-  public async signup(name: string, email: string): Promise<User> {
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
+  public async signup(name: string, email: string, password?: string): Promise<User> {
+    const cleanName = (name || '').trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    
+    if (!cleanName) {
+      throw new Error('Full name is required for registration.');
+    }
+    if (!cleanEmail) {
+      throw new Error('Email address is required for registration.');
+    }
+
+    // Check if user already exists in local store
+    let existingUser = this.data.users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (!existingUser && isSupabaseConnected()) {
+      const sp = await supabaseDb.getProfileByEmail(cleanEmail);
+      if (sp) {
+        existingUser = {
+          id: sp.id,
+          name: sp.name,
+          firstName: sp.first_name || sp.name.split(' ')[0],
+          lastName: sp.last_name || sp.name.split(' ').slice(1).join(' '),
+          email: sp.email,
+          headline: sp.headline || 'Student at Udemy',
+          biography: sp.biography || '',
+          language: sp.language || 'English (US)',
+          website: sp.website || '',
+          role: sp.role || 'LEARNER',
+          avatarInitials: sp.avatar_initials || (sp.name[0] || 'U').toUpperCase(),
+          occupation: sp.occupation || 'Learner',
+          password: sp.password || undefined
+        };
+        this.data.users.push(existingUser);
+      }
+    }
+
+    if (existingUser) {
+      throw new Error(`An account with email "${cleanEmail}" already exists. Please log in.`);
+    }
+
     const names = cleanName.split(' ');
     const firstName = names[0] || 'Student';
     const lastName = names.slice(1).join(' ') || '';
     const initials = (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase();
 
-    let user = this.data.users.find(u => u.email.toLowerCase() === cleanEmail);
-    if (user) {
-      user.name = cleanName;
-      user.firstName = firstName;
-      user.lastName = lastName;
-      user.avatarInitials = initials;
-    } else {
-      user = {
-        id: `usr_${Date.now()}`,
-        name: cleanName,
-        firstName,
-        lastName,
-        email: cleanEmail,
-        headline: 'Learner at Udemy',
-        biography: '',
-        language: 'English (US)',
-        website: '',
-        role: 'LEARNER',
-        avatarInitials: initials,
-        occupation: 'Learner'
-      };
-      this.data.users.push(user);
-    }
+    const newUser: User = {
+      id: `usr_${Date.now()}`,
+      name: cleanName,
+      firstName,
+      lastName,
+      email: cleanEmail,
+      headline: 'Learner at Udemy',
+      biography: '',
+      language: 'English (US)',
+      website: '',
+      role: 'LEARNER',
+      avatarInitials: initials,
+      occupation: 'Learner',
+      password: password || '123456'
+    };
 
-    this.data.activeUserId = user.id;
+    this.data.users.push(newUser);
+    this.data.activeUserId = newUser.id;
     this.persist(this.data);
 
     if (isSupabaseConnected()) {
-      supabaseDb.upsertProfile(user).catch(err => console.warn('[Supabase Sync Error]', err));
+      supabaseDb.upsertProfile(newUser).catch(err => console.warn('[Supabase Sync Error]', err));
     }
 
-    return user;
+    return newUser;
   }
 
   public logout(): void {

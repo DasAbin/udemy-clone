@@ -44,18 +44,29 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { email, name } = req.body;
-  const user = await db.login(email, name);
-  res.json({ success: true, user, message: 'Logged in successfully' });
+  try {
+    const { email, password } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    const user = await db.login(email, password);
+    res.json({ success: true, user, message: 'Logged in successfully' });
+  } catch (err: any) {
+    res.status(401).json({ success: false, message: err.message });
+  }
 });
 
 app.post('/api/auth/signup', async (req, res) => {
-  const { name, email } = req.body;
-  if (!name || !email) {
-    return res.status(400).json({ success: false, message: 'Name and email are required' });
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !name.trim() || !email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    }
+    const user = await db.signup(name, email, password);
+    res.json({ success: true, user, message: 'Account created successfully' });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
   }
-  const user = await db.signup(name, email);
-  res.json({ success: true, user, message: 'Account created successfully' });
 });
 
 app.post('/api/auth/logout', (req, res) => {

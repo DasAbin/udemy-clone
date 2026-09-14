@@ -29,7 +29,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
           setIsLoading(false);
           return;
         }
-        const res = await api.login(email.trim(), name.trim());
+        if (!password.trim()) {
+          setErrorMsg('Please enter your password.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.login(email.trim(), password.trim());
         if (res.user) {
           onSuccess(res.user);
           onClose();
@@ -37,12 +42,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
           setErrorMsg(res.message || 'Login failed.');
         }
       } else {
-        if (!name.trim() || !email.trim()) {
-          setErrorMsg('Please provide your full name and email address.');
+        if (!name.trim()) {
+          setErrorMsg('Please enter your full name.');
           setIsLoading(false);
           return;
         }
-        const res = await api.signup(name.trim(), email.trim());
+        if (!email.trim()) {
+          setErrorMsg('Please enter your email address.');
+          setIsLoading(false);
+          return;
+        }
+        if (!password.trim() || password.length < 4) {
+          setErrorMsg('Please enter a password with at least 4 characters.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.signup(name.trim(), email.trim(), password.trim());
         if (res.user) {
           onSuccess(res.user);
           onClose();
@@ -56,6 +71,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
       setIsLoading(false);
     }
   };
+
+  const isNoAccountError = errorMsg.toLowerCase().includes('no account found') || errorMsg.toLowerCase().includes('sign up first');
+  const isExistingAccountError = errorMsg.toLowerCase().includes('already exists');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -71,10 +89,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
         </div>
 
         <p style={{ margin: '0 24px 16px', color: '#6a6f73', fontSize: '13px' }}>
-          Enter your name and email to personalize your learning dashboard, invoice, and certificates.
+          {mode === 'login'
+            ? 'Enter your email and password to log in. You must sign up first before logging in.'
+            : 'Create your account to access your personalized learning dashboard, invoices, and certificates.'}
         </p>
 
-        {errorMsg && <div className="auth-error-alert">{errorMsg}</div>}
+        {errorMsg && (
+          <div className="auth-error-alert">
+            <div>{errorMsg}</div>
+            {isNoAccountError && (
+              <div style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className="auth-switch-action-btn"
+                  onClick={() => {
+                    setMode('signup');
+                    setErrorMsg('');
+                  }}
+                >
+                  Create account now with this email →
+                </button>
+              </div>
+            )}
+            {isExistingAccountError && (
+              <div style={{ marginTop: '8px' }}>
+                <button
+                  type="button"
+                  className="auth-switch-action-btn"
+                  onClick={() => {
+                    setMode('login');
+                    setErrorMsg('');
+                  }}
+                >
+                  Switch to Log in →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form-body">
@@ -100,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required={mode === 'signup'}
+              required
             />
           </div>
 
@@ -109,9 +161,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
             <input
               type="password"
               className="auth-input"
-              placeholder="Password"
+              placeholder={mode === 'signup' ? 'Create a password (min 4 chars)' : 'Enter your password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
@@ -120,7 +173,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
             className="btn btn-primary auth-submit-btn"
             disabled={isLoading}
           >
-            {mode === 'login' ? (
+            {isLoading ? (
+              'Processing...'
+            ) : mode === 'login' ? (
               <>
                 <LogIn size={16} className="mr-2" /> Log in
               </>
@@ -191,32 +246,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
         .auth-close-btn:hover {
           color: #1c1d1f;
         }
-        .demo-account-callout {
-          background: #f3e8fd;
-          border: 1px solid #c0c4fc;
-          border-radius: 6px;
-          padding: 14px 16px;
-          margin-bottom: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-        .callout-badge {
-          display: inline-flex;
-          align-items: center;
-          background: #5624d0;
-          color: #ffffff;
-          font-size: 11px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 4px;
-          margin-bottom: 6px;
-        }
-        .callout-desc {
-          font-size: 13px;
-          color: #2d2f31;
-          line-height: 1.4;
-        }
         .auth-divider-text {
           position: relative;
           text-align: center;
@@ -242,10 +271,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ initialMode = 'login', onC
           background: #fdf2f2;
           border: 1px solid #f98080;
           color: #9b1c1c;
-          padding: 10px 14px;
-          border-radius: 4px;
+          padding: 12px 14px;
+          border-radius: 6px;
           font-size: 13px;
           margin-bottom: 16px;
+          line-height: 1.4;
+        }
+        .auth-switch-action-btn {
+          background: #a435f0;
+          color: #ffffff;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .auth-switch-action-btn:hover {
+          background: #8710d8;
         }
         .auth-form-body {
           display: flex;

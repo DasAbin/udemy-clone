@@ -119,6 +119,7 @@ export const supabaseDb = {
         role: profile.role || 'LEARNER',
         avatar_initials: profile.avatarInitials || 'VS',
         occupation: profile.occupation || profile.headline,
+        password: profile.password || null,
         updated_at: new Date().toISOString()
       })
       .select()

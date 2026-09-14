@@ -11,6 +11,7 @@ export interface User {
   role: 'LEARNER' | 'INSTRUCTOR' | 'ADMIN';
   avatarInitials: string;
   occupation: string;
+  password?: string;
 }
 
 export interface Lecture {

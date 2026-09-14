@@ -8,22 +8,30 @@ export const api = {
     return res.json();
   },
 
-  async login(email?: string, name?: string): Promise<{ user: User; message: string }> {
+  async login(email?: string, password?: string): Promise<{ success: boolean; user: User; message: string }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name })
+      body: JSON.stringify({ email, password })
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+    return data;
   },
 
-  async signup(name: string, email: string): Promise<{ user: User; message: string }> {
+  async signup(name: string, email: string, password?: string): Promise<{ success: boolean; user: User; message: string }> {
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email })
+      body: JSON.stringify({ name, email, password })
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Signup failed');
+    }
+    return data;
   },
 
   async logout(): Promise<{ message: string }> {
