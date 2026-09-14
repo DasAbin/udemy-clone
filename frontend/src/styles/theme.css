@@ -1,0 +1,72 @@
+:root {
+  /* Brand / Primary Purple */
+  --udemy-purple-primary: #a435f0;
+  --udemy-purple-hover: #8710d8;
+  --udemy-purple-dark: #5624d0;
+  --udemy-purple-darker: #401b9c;
+  --udemy-purple-light: #f3e8fd;
+  --udemy-purple-ultralight: #f6f0fd;
+  --udemy-purple-border: #a435f0;
+
+  /* Neutral & Dark Elements */
+  --udemy-dark-bg: #1c1d1f;
+  --udemy-dark-surface: #2d2f31;
+  --udemy-dark-border: #3e4143;
+  --udemy-dark-hover: #3e4143;
+
+  /* Text Colors */
+  --udemy-text-primary: #2d2f31;
+  --udemy-text-secondary: #6a6f73;
+  --udemy-text-muted: #8a9094;
+  --udemy-text-white: #ffffff;
+  --udemy-text-dark: #1c1d1f;
+
+  /* Backgrounds */
+  --udemy-bg-white: #ffffff;
+  --udemy-bg-subtle: #f7f9fa;
+  --udemy-bg-active: #f1f3f5;
+  --udemy-bg-hover: #f7f9fa;
+  --udemy-bg-banner-lavender: #ecebf5;
+
+  /* Borders & Dividers */
+  --udemy-border-light: #d1d7dc;
+  --udemy-border-subtle: #e4e8eb;
+  --udemy-border-dark: #2d2f31;
+
+  /* Badges & Highlights */
+  --udemy-star-gold: #b4690e;
+  --udemy-badge-bestseller-bg: #eceb98;
+  --udemy-badge-bestseller-text: #3d3c0a;
+  --udemy-badge-highest-rated-bg: #f3ca8c;
+  --udemy-badge-highest-rated-text: #4d3105;
+  --udemy-badge-new-bg: #cdeee8;
+  --udemy-badge-new-text: #195646;
+  --udemy-badge-premium-bg: #6a2cc8;
+  --udemy-badge-premium-text: #ffffff;
+
+  /* Status Colors */
+  --udemy-success: #1f9d55;
+  --udemy-info: #0056b3;
+  --udemy-warning: #b4690e;
+  --udemy-danger: #b32d0f;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.14);
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --max-content-width: 1340px;
+  --header-height: 72px;
+  --subnav-height: 44px;
+}
